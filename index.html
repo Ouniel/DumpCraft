@@ -1,0 +1,1529 @@
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tcpdump命令生成器 - Linux网络分析利器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #4a235a, #2c3e50);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        header {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #1a2a6c);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+            position: relative;
+        }
+        h1 {
+            font-size: 2.8em;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(45deg, #3498db, #2ecc71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 150px;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            border-radius: 2px;
+        }
+        .subtitle {
+            font-size: 1.3em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+            color: #ecf0f1;
+        }
+        main {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 25px;
+        }
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        .filter-tabs {
+            display: flex;
+            margin-bottom: 25px;
+            background: #f0f2f5;
+            border-radius: 25px;
+            padding: 5px;
+            gap: 5px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            flex-wrap: wrap;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 16px 20px;
+            border: none;
+            background: transparent;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            min-width: 120px;
+        }
+        .tab-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+        .tab-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.3);
+        }
+        .tab-button:hover::before {
+            opacity: 1;
+        }
+        .tab-button.active {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .filter-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border-left: 5px solid #3498db;
+            position: relative;
+            overflow: hidden;
+        }
+        .filter-section:hover {
+            transform: translateY(-7px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        }
+        .filter-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+        }
+        .filter-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        .filter-section h2 i {
+            color: #3498db;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eaf6ff;
+            border-radius: 8px;
+        }
+        .options {
+            display: grid;
+            gap: 18px;
+        }
+        .protocol-grid,
+        .flag-grid,
+        .nmap-grid,
+        .scanner-grid {
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        }
+        .file-type-grid {
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .input-group.horizontal {
+            flex-direction: row;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .input-group.horizontal label {
+            min-width: 140px;
+            flex-shrink: 0;
+        }
+        .full-width {
+            grid-column: 1 / -1;
+        }
+        label {
+            font-weight: 600;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: color 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        label:hover {
+            color: #3498db;
+        }
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            padding: 14px 18px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: white;
+            width: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.15);
+        }
+        textarea {
+            min-height: 140px;
+            resize: vertical;
+            font-family: 'Consolas', 'Courier New', monospace;
+            line-height: 1.5;
+        }
+        input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.3);
+            accent-color: #3498db;
+        }
+        .common-filters {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #9b59b6;
+        }
+        .common-filters h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .common-filters ul {
+            list-style: none;
+            display: grid;
+            gap: 12px;
+        }
+        .common-filters button {
+            width: 100%;
+            padding: 14px 18px;
+            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+        .common-filters button:hover {
+            transform: translateX(8px);
+            box-shadow: 0 7px 18px rgba(155, 89, 182, 0.35);
+        }
+        .result-section {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-left: 5px solid #2ecc71;
+        }
+        .result-section h2 {
+            margin-bottom: 20px;
+            color: #ecf0f1;
+            font-size: 1.8em;
+            text-align: center;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .result-section h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            border-radius: 2px;
+        }
+        .command-output {
+            position: relative;
+        }
+        #filterCommand {
+            width: 100%;
+            min-height: 160px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 18px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 15px;
+            color: #f1f2f6;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+        .primary-button,
+        .secondary-button {
+            padding: 14px 22px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 140px;
+            justify-content: center;
+        }
+        .primary-button {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+        }
+        .secondary-button {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+        }
+        .tertiary-button {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+        .primary-button:hover,
+        .secondary-button:hover,
+        .tertiary-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(0, 0, 0, 0.2);
+        }
+        .flag-encodings {
+            margin-top: 18px;
+            padding: 18px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 12px;
+            border-left: 4px solid #3498db;
+        }
+        .flag-encodings p {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .flag-encodings ul {
+            list-style: none;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            color: #34495e;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .flag-encodings li {
+            padding: 8px 12px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(52, 152, 219, 0.2);
+        }
+        .scenario-examples {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #f39c12;
+        }
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 18px;
+            margin-top: 18px;
+        }
+        .scenario-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-left: 5px solid #f39c12;
+        }
+        .scenario-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(243, 156, 18, 0.2);
+        }
+        .scanner-card {
+            border-left: 5px solid #9b59b6;
+        }
+        .scanner-card:hover {
+            box-shadow: 0 10px 25px rgba(155, 89, 182, 0.2);
+        }
+        .scenario-card h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .scenario-card p {
+            color: #7f8c8d;
+            font-size: 14.5px;
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        .scenario-card code {
+            background: rgba(0, 0, 0, 0.08);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            display: block;
+            line-height: 1.5;
+            overflow-x: auto;
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        .history-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #9b59b6;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .history-section h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .history-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .history-item {
+            padding: 14px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border: 1px solid #e1e5e9;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .history-item:hover {
+            background: #e3f2fd;
+            border-color: #bbdefb;
+            transform: translateX(3px);
+        }
+        .file-extraction-tips {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #e74c3c;
+        }
+        .file-extraction-tips h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .tips-content {
+            background: #fff8e1;
+            border-radius: 12px;
+            padding: 18px;
+            border: 1px solid #ffe082;
+        }
+        .tips-content h3 {
+            color: #e74c3c;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .tips-content ul {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        .tips-content li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+            word-wrap: break-word; /* 确保长文本换行 */
+        }
+        .tip-code {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 13px;
+            margin: 12px 0;
+            overflow-x: auto;
+            white-space: pre-wrap;   /* 允许自动换行 */
+            word-break: break-all; /* 强制长单词或URL换行 */
+        }
+        footer {
+            background: #2c3e50;
+            padding: 25px;
+            text-align: center;
+            color: #ecf0f1;
+            font-size: 15px;
+        }
+        footer p {
+            margin-bottom: 10px;
+        }
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .footer-links a {
+            color: #3498db;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .footer-links a:hover {
+            color: #2ecc71;
+            text-decoration: underline;
+        }
+        .save-load-section {
+            display: flex;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .nmap-tip {
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(155, 89, 182, 0.1));
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            border-left: 4px solid #3498db;
+        }
+        .fscan-tip {
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(192, 57, 43, 0.1));
+            border-left: 4px solid #e74c3c;
+        }
+        .nmap-tip h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .nmap-tip ul {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+        .nmap-tip li {
+            margin-bottom: 8px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-wrap: break-word; /* 确保长文本换行 */
+        }
+        .scanner-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .nmap-indicator {
+            background-color: #3498db;
+        }
+        .fscan-indicator {
+            background-color: #e74c3c;
+        }
+        /* --- 实战技巧子标签页样式 Start --- */
+        .tips-sub-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e1e5e9;
+            padding-bottom: 10px;
+        }
+        .tips-sub-tab-button {
+            padding: 10px 18px;
+            border: none;
+            background: #f0f2f5;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.3s ease;
+        }
+        .tips-sub-tab-button:hover {
+            background: #e0e5eb;
+            color: #2980b9;
+        }
+        .tips-sub-tab-button.active {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            box-shadow: 0 4px 10px rgba(52, 152, 219, 0.3);
+        }
+        .tips-sub-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+            max-height: 80vh; /* 增加最大高度 */
+            overflow-y: auto;
+            padding-right: 15px;
+        }
+        .tips-sub-content.active {
+            display: block;
+        }
+        /* --- 实战技巧子标签页样式 End --- */
+        .tips-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid #9b59b6;
+        }
+        .tips-section h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        .tips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .tip-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border-left: 4px solid #3498db;
+        }
+        .tip-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+        .tip-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .tip-number {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        .tip-title {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        .tip-desc {
+            color: #555;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-size: 0.95em;
+        }
+        .tip-command {
+            background: #2c3e50;
+            color: #f1f2f6;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            word-break: break-all;
+            line-height: 1.5;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tip-command:hover {
+            background: #34495e;
+        }
+        .copy-icon {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            color: #3498db;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 4px;
+            padding: 3px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tip-command:hover .copy-icon {
+            opacity: 1;
+        }
+        @media (max-width: 1100px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                grid-row: 1;
+            }
+        }
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                padding: 15px;
+            }
+            .filter-tabs {
+                flex-direction: column;
+            }
+            .protocol-grid,
+            .flag-grid,
+            .nmap-grid,
+            .scanner-grid,
+            .file-type-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .scenario-grid, .tips-grid {
+                grid-template-columns: 1fr;
+            }
+            header {
+                padding: 20px 15px;
+            }
+            h1 {
+                font-size: 2.2em;
+            }
+            .subtitle {
+                font-size: 1.1em;
+            }
+            .button-group {
+                flex-direction: column;
+            }
+            .button-group button {
+                width: 100%;
+            }
+        }
+        /* Animations */
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+
+        /* tcpdump specific styles */
+        .interface-grid {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+        .protocol-selector-grid {
+             grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+        .output-options-grid {
+             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        }
+        .advanced-options-grid {
+             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+        .tip-card.tcpdump-tip {
+            border-left: 4px solid #2ecc71;
+        }
+        .tip-card.tcpdump-tip .tip-number {
+             background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-terminal"></i> tcpdump命令生成器</h1>
+            <p class="subtitle">Linux网络分析利器 - 从基础到实战，一键生成命令</p>
+        </header>
+        <main>
+            <div class="main-content">
+                <div class="filter-tabs">
+                    <button class="tab-button active" data-tab="basic"><i class="fas fa-sliders-h"></i> 基础配置</button>
+                    <button class="tab-button" data-tab="filters"><i class="fas fa-filter"></i> 流量过滤</button>
+                    <button class="tab-button" data-tab="advanced"><i class="fas fa-cogs"></i> 高级选项</button>
+                    <button class="tab-button" data-tab="scenarios"><i class="fas fa-lightbulb"></i> 常见场景</button>
+                    <button class="tab-button" data-tab="tips"><i class="fas fa-graduation-cap"></i> 实战技巧</button>
+                    <button class="tab-button" data-tab="custom"><i class="fas fa-code"></i> 自定义</button>
+                </div>
+                <div class="tab-content active" id="basic">
+                    <!-- 基础配置内容 -->
+                    <div class="filter-section">
+                        <h2><i class="fas fa-network-wired"></i> 网络接口</h2>
+                        <div class="options interface-grid">
+                            <div class="input-group">
+                                <label>指定接口：</label>
+                                <input type="text" id="interface" placeholder="例如：eth0, wlan0">
+                                <select id="commonInterfaces">
+                                    <option value="">常用接口</option>
+                                    <option value="any">any (所有接口)</option>
+                                    <option value="lo">lo (本地回环)</option>
+                                    <option value="eth0">eth0</option>
+                                    <option value="wlan0">wlan0</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label>列出可用接口：</label>
+                                <button id="listInterfaces" class="secondary-button"><i class="fas fa-list"></i> tcpdump -D</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-section">
+                        <h2><i class="fas fa-globe"></i> IP地址过滤</h2>
+                        <div class="options">
+                            <div class="input-group">
+                                <label>主机IP：</label>
+                                <input type="text" id="hostIP" placeholder="例如：192.168.1.1">
+                            </div>
+                            <div class="input-group horizontal">
+                                <label><input type="radio" name="hostDirection" value="both" checked> 双向</label>
+                                <label><input type="radio" name="hostDirection" value="src"> 源</label>
+                                <label><input type="radio" name="hostDirection" value="dst"> 目的</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-section">
+                        <h2><i class="fas fa-plug"></i> 端口过滤</h2>
+                        <div class="options">
+                            <div class="input-group">
+                                <label>端口号：</label>
+                                <input type="number" id="portNumber" placeholder="例如：80">
+                                <select id="commonPorts">
+                                    <option value="">常用端口</option>
+                                    <option value="22">SSH (22)</option>
+                                    <option value="21">FTP (21)</option>
+                                    <option value="25">SMTP (25)</option>
+                                    <option value="53">DNS (53)</option>
+                                    <option value="80">HTTP (80)</option>
+                                    <option value="443">HTTPS (443)</option>
+                                    <option value="3306">MySQL (3306)</option>
+                                    <option value="5432">PostgreSQL (5432)</option>
+                                </select>
+                            </div>
+                            <div class="input-group horizontal">
+                                <label><input type="radio" name="portProto" value="" checked> 任意协议</label>
+                                <label><input type="radio" name="portProto" value="tcp"> TCP</label>
+                                <label><input type="radio" name="portProto" value="udp"> UDP</label>
+                            </div>
+                            <div class="input-group horizontal">
+                                <label><input type="radio" name="portDirection" value="both" checked> 双向</label>
+                                <label><input type="radio" name="portDirection" value="src"> 源</label>
+                                <label><input type="radio" name="portDirection" value="dst"> 目的</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-content" id="filters">
+                    <!-- 流量过滤内容 -->
+                    <div class="filter-section">
+                        <h2><i class="fas fa-network-wired"></i> 协议过滤</h2>
+                        <div class="options protocol-selector-grid">
+                            <label><input type="checkbox" name="protocol" value="tcp"> TCP</label>
+                            <label><input type="checkbox" name="protocol" value="udp"> UDP</label>
+                            <label><input type="checkbox" name="protocol" value="icmp"> ICMP</label>
+                            <label><input type="checkbox" name="protocol" value="arp"> ARP</label>
+                            <label><input type="checkbox" name="protocol" value="ether proto 0x88cc"> LLDP</label>
+                            <label><input type="checkbox" name="protocol" value="ether multicast"> 以太网多播</label>
+                        </div>
+                    </div>
+                     <div class="filter-section">
+                        <h2><i class="fas fa-microchip"></i> 主机间通信</h2>
+                        <div class="options">
+                            <div class="input-group">
+                                <label>主机A：</label>
+                                <input type="text" id="hostA" placeholder="例如：10.1.1.1">
+                            </div>
+                             <div class="input-group">
+                                <label>主机B：</label>
+                                <input type="text" id="hostB" placeholder="例如：10.1.1.2">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-section">
+                        <h2><i class="fas fa-layer-group"></i> VLAN过滤</h2>
+                        <div class="options">
+                            <div class="input-group">
+                                <label>VLAN ID：</label>
+                                <input type="number" id="vlanID" placeholder="例如：20">
+                                <label><input type="checkbox" id="anyVlan"> 任意VLAN</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-section">
+                        <h2><i class="fas fa-broadcast-tower"></i> 广播/组播</h2>
+                        <div class="options">
+                            <label><input type="checkbox" id="broadcast"> 广播流量</label>
+                            <label><input type="checkbox" id="multicast"> 组播流量</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-content" id="advanced">
+                    <!-- 高级选项内容 -->
+                    <div class="filter-section">
+                        <h2><i class="fas fa-save"></i> 输出到文件</h2>
+                        <div class="options">
+                            <div class="input-group">
+                                <label>文件名：</label>
+                                <input type="text" id="outputFile" placeholder="例如：capture.pcap">
+                            </div>
+                            <div class="input-group horizontal">
+                                <label>轮询文件大小 (MB)：</label>
+                                <input type="number" id="rotateSize" placeholder="例如：100">
+                            </div>
+                            <div class="input-group horizontal">
+                                <label>轮询文件数量：</label>
+                                <input type="number" id="rotateCount" placeholder="例如：5">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-section">
+                        <h2><i class="fas fa-ruler-horizontal"></i> 抓包限制</h2>
+                        <div class="options">
+                            <div class="input-group horizontal">
+                                <label>抓包数量 (-c)：</label>
+                                <input type="number" id="packetCount" placeholder="例如：100">
+                            </div>
+                            <div class="input-group horizontal">
+                                <label>抓包大小 (-s)：</label>
+                                <input type="number" id="snapshotLength" placeholder="例如：96 (0为完整)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filter-section">
+                        <h2><i class="fas fa-search"></i> 输出选项</h2>
+                        <div class="options output-options-grid">
+                            <label><input type="checkbox" id="noDNS"> -n (不解析DNS)</label>
+                            <label><input type="checkbox" id="noPortNames"> -nn (不解析端口名)</label>
+                            <label><input type="checkbox" id="showLink"> -e (显示链路层头)</label>
+                            <label><input type="checkbox" id="lineBuffered"> -l (行缓冲输出)</label>
+                            <label><input type="checkbox" id="hexOutput"> -X (十六进制+ASCII)</label>
+                            <label><input type="checkbox" id="hexOutput2"> -XX (含链路层十六进制)</label>
+                        </div>
+                    </div>
+                    <div class="filter-section">
+                        <h2><i class="fas fa-bolt"></i> 详细程度</h2>
+                        <div class="options">
+                            <label><input type="radio" name="verbosity" value=""> 默认</label>
+                            <label><input type="radio" name="verbosity" value="-v"> -v (详细)</label>
+                            <label><input type="radio" name="verbosity" value="-vv"> -vv (更详细)</label>
+                            <label><input type="radio" name="verbosity" value="-vvv"> -vvv (最详细)</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-content" id="scenarios">
+                    <!-- 常见场景内容 -->
+                    <div class="scenario-examples">
+                        <h2><i class="fas fa-lightbulb"></i> 快速场景</h2>
+                        <div class="scenario-grid">
+                            <div class="scenario-card tcpdump-tip" onclick="applyScenario('tcp-handshake')">
+                                <h4><i class="fas fa-handshake"></i> TCP三次握手</h4>
+                                <p>捕获TCP连接建立过程</p>
+                                <code>tcpdump 'tcp[tcpflags] & (tcp-syn|tcp-ack) != 0'</code>
+                            </div>
+                            <div class="scenario-card tcpdump-tip" onclick="applyScenario('dns-traffic')">
+                                <h4><i class="fas fa-dns"></i> DNS流量</h4>
+                                <p>捕获DNS查询与响应</p>
+                                <code>tcpdump udp port 53 -vvv</code>
+                            </div>
+                            <div class="scenario-card tcpdump-tip" onclick="applyScenario('vlan-tagged')">
+                                <h4><i class="fas fa-tags"></i> VLAN流量</h4>
+                                <p>捕获特定VLAN ID的流量</p>
+                                <code>tcpdump -i eth0 vlan 20</code>
+                            </div>
+                            <div class="scenario-card tcpdump-tip" onclick="applyScenario('broadcast-storm')">
+                                <h4><i class="fas fa-broadcast-tower"></i> 广播/组播</h4>
+                                <p>排查广播风暴或组播问题</p>
+                                <code>tcpdump broadcast or multicast</code>
+                            </div>
+                            <div class="scenario-card tcpdump-tip" onclick="applyScenario('icmp-ping')">
+                                <h4><i class="fas fa-exchange-alt"></i> ICMP Ping</h4>
+                                <p>捕获ICMP Echo请求与响应</p>
+                                <code>tcpdump icmp</code>
+                            </div>
+                            <div class="scenario-card tcpdump-tip" onclick="applyScenario('arp-traffic')">
+                                <h4><i class="fas fa-project-diagram"></i> ARP流量</h4>
+                                <p>捕获ARP请求与响应</p>
+                                <code>tcpdump arp</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="common-filters">
+                        <h2><i class="fas fa-star"></i> 常用组合</h2>
+                        <ul>
+                            <li><button onclick="applyFilter('tcpdump -i eth0 -n -c 100')"><i class="fas fa-terminal"></i> 抓100个包并显示IP</button></li>
+                            <li><button onclick="applyFilter('tcpdump -i any -s 0 -w capture.pcap')"><i class="fas fa-save"></i> 完整抓包写入文件</button></li>
+                            <li><button onclick="applyFilter('tcpdump -i eth0 src 192.168.1.100 and port 22')"><i class="fas fa-filter"></i> 指定源IP和端口</button></li>
+                            <li><button onclick="applyFilter('tcpdump -i eth0 host 10.1.1.1 and host 10.1.1.2 -w test.cap')"><i class="fas fa-exchange-alt"></i> 抓两主机通信</button></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="tab-content" id="tips">
+                    <!-- 实战技巧内容 -->
+                    <div class="tips-sub-tabs">
+                        <button class="tips-sub-tab-button active" data-subtab="tips-basic"><i class="fas fa-bullseye"></i> 基础技巧</button>
+                        <button class="tips-sub-tab-button" data-subtab="tips-filter"><i class="fas fa-filter"></i> 高效过滤</button>
+                        <button class="tips-sub-tab-button" data-subtab="tips-advanced"><i class="fas fa-cogs"></i> 高级分析</button>
+                        <button class="tips-sub-tab-button" data-subtab="tips-security"><i class="fas fa-shield-alt"></i> 安全排障</button>
+                    </div>
+                    <div class="tips-sub-content active" id="tips-basic">
+                        <div class="tips-section">
+                            <h3><i class="fas fa-bullseye"></i> 基础技巧：快速上手</h3>
+                            <div class="tips-grid">
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">1</div><div class="tip-title">指定接口抓包</div></div>
+                                    <div class="tip-desc">在特定网络接口上开始抓包。</div>
+                                    <div class="tip-command">tcpdump -i eth0<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">2</div><div class="tip-title">限制抓包数量</div></div>
+                                    <div class="tip-desc">只抓取指定数量的数据包后停止。</div>
+                                    <div class="tip-command">tcpdump -c 100<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">3</div><div class="tip-title">禁止DNS解析</div></div>
+                                    <div class="tip-desc">加速显示，避免反向DNS查询延迟。</div>
+                                    <div class="tip-command">tcpdump -n<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">4</div><div class="tip-title">保存到文件</div></div>
+                                    <div class="tip-desc">将抓取的数据包保存到文件供后续分析 [[83]].</div>
+                                    <div class="tip-command">tcpdump -w capture.pcap<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">5</div><div class="tip-title">读取文件分析</div></div>
+                                    <div class="tip-desc">分析之前保存的抓包文件 [[87]].</div>
+                                    <div class="tip-command">tcpdump -r capture.pcap<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">6</div><div class="tip-title">显示链路层信息</div></div>
+                                    <div class="tip-desc">显示以太网帧头部信息，如MAC地址 [[97]].</div>
+                                    <div class="tip-command">tcpdump -e<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tips-sub-content" id="tips-filter">
+                        <div class="tips-section">
+                            <h3><i class="fas fa-filter"></i> 高效过滤：精准定位</h3>
+                            <div class="tips-grid">
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">7</div><div class="tip-title">主机过滤</div></div>
+                                    <div class="tip-desc">抓取与特定主机相关的所有流量。</div>
+                                    <div class="tip-command">tcpdump host 192.168.1.1<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">8</div><div class="tip-title">端口过滤</div></div>
+                                    <div class="tip-desc">抓取特定端口的流量。</div>
+                                    <div class="tip-command">tcpdump port 80<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">9</div><div class="tip-title">协议过滤</div></div>
+                                    <div class="tip-desc">只抓取特定协议的数据包。</div>
+                                    <div class="tip-command">tcpdump icmp<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">10</div><div class="tip-title">方向过滤</div></div>
+                                    <div class="tip-desc">区分流量方向，源或目的。</div>
+                                    <div class="tip-command">tcpdump src host 192.168.1.1<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">11</div><div class="tip-title">组合过滤</div></div>
+                                    <div class="tip-desc">使用逻辑运算符组合多个条件。</div>
+                                    <div class="tip-command">tcpdump src 10.1.1.1 and dst port 22<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                 <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">12</div><div class="tip-title">VLAN过滤</div></div>
+                                    <div class="tip-desc">捕获特定VLAN内的流量 [[64]].</div>
+                                    <div class="tip-command">tcpdump vlan 100<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tips-sub-content" id="tips-advanced">
+                        <div class="tips-section">
+                            <h3><i class="fas fa-cogs"></i> 高级分析：深度洞察</h3>
+                            <div class="tips-grid">
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">13</div><div class="tip-title">抓包头</div></div>
+                                    <div class="tip-desc">只抓取包头，节省空间和性能 [[89]].</div>
+                                    <div class="tip-command">tcpdump -s 96 -c 100 -w arp.cap<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">14</div><div class="tip-title">轮询写入文件</div></div>
+                                    <div class="tip-desc">防止单个文件过大，自动轮询。</div>
+                                    <div class="tip-command">tcpdump -G 3600 -w /tmp/capture-%Y-%m-%d-%H.pcap<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">15</div><div class="tip-title">详细输出</div></div>
+                                    <div class="tip-desc">获取更详细的包信息，如TTL、长度 [[98]].</div>
+                                    <div class="tip-command">tcpdump -vv<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">16</div><div class="tip-title">十六进制输出</div></div>
+                                    <div class="tip-desc">查看包的原始内容 [[101]].</div>
+                                    <div class="tip-command">tcpdump -X<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">17</div><div class="tip-title">行缓冲输出</div></div>
+                                    <div class="tip-desc">实时输出，配合管道使用 [[103]].</div>
+                                    <div class="tip-command">tcpdump -l | grep 192.168.1.100<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">18</div><div class="tip-title">抓取完整包</div></div>
+                                    <div class="tip-desc">忽略默认长度限制，抓取完整数据包 [[90]].</div>
+                                    <div class="tip-command">tcpdump -s 0<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tips-sub-content" id="tips-security">
+                         <div class="tips-section">
+                            <h3><i class="fas fa-shield-alt"></i> 安全排障：威胁狩猎</h3>
+                            <div class="tips-grid">
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">19</div><div class="tip-title">TCP SYN扫描</div></div>
+                                    <div class="tip-desc">检测潜在的TCP SYN扫描行为。</div>
+                                    <div class="tip-command">tcpdump 'tcp[tcpflags] & tcp-syn != 0 and tcp[tcpflags] & tcp-ack == 0'<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">20</div><div class="tip-title">DNS查询分析</div></div>
+                                    <div class="tip-desc">监控DNS查询，发现异常域名访问 [[57]].</div>
+                                    <div class="tip-command">tcpdump -i any port 53<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">21</div><div class="tip-title">广播风暴检测</div></div>
+                                    <div class="tip-desc">识别异常的广播流量 [[70]].</div>
+                                    <div class="tip-command">tcpdump broadcast<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">22</div><div class="tip-title">组播流量监控</div></div>
+                                    <div class="tip-desc">监控组播流量，排查相关问题 [[73]].</div>
+                                    <div class="tip-command">tcpdump multicast<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">23</div><div class="tip-title">大流量监控</div></div>
+                                    <div class="tip-desc">关注特定大小以上的数据包。</div>
+                                    <div class="tip-command">tcpdump greater 1000<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                                <div class="tip-card tcpdump-tip">
+                                    <div class="tip-header"><div class="tip-number">24</div><div class="tip-title">特定内容搜索</div></div>
+                                    <div class="tip-desc">在包内容中搜索特定字符串。</div>
+                                    <div class="tip-command">tcpdump -A | grep "password"<i class="fas fa-copy copy-icon" onclick="copyCommand(this)"></i></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tab-content" id="custom">
+                    <!-- 自定义过滤内容 -->
+                    <div class="filter-section">
+                        <h2><i class="fas fa-code"></i> 自定义tcpdump命令</h2>
+                        <div class="options">
+                            <div class="input-group full-width">
+                                <textarea id="customFilter" placeholder="在此输入完整的自定义tcpdump命令或过滤表达式"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="result-section">
+                    <h2><i class="fas fa-terminal"></i> 生成的tcpdump命令</h2>
+                    <div class="command-output">
+                        <textarea id="filterCommand" readonly placeholder="这里将显示生成的tcpdump命令...">tcpdump -i eth0 host 192.168.10.10</textarea>
+                        <div class="button-group">
+                            <button id="copyButton" class="primary-button">
+                                <i class="fas fa-copy"></i> 复制命令
+                            </button>
+                            <button id="saveButton" class="secondary-button">
+                                <i class="fas fa-save"></i> 保存配置
+                            </button>
+                            <button id="clearButton" class="tertiary-button">
+                                <i class="fas fa-trash"></i> 清除
+                            </button>
+                            <button id="exportButton" class="secondary-button">
+                                <i class="fas fa-download"></i> 导出为文件
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar">
+                <div class="history-section">
+                    <h2><i class="fas fa-history"></i> 历史记录</h2>
+                    <ul class="history-list" id="historyList">
+                        <li class="history-item">tcpdump -i eth0 -n</li>
+                        <li class="history-item">tcpdump port 443</li>
+                        <li class="history-item">tcpdump host 192.168.1.1</li>
+                        <li class="history-item">tcpdump -w capture.pcap</li>
+                        <li class="history-item">tcpdump -i any icmp</li>
+                    </ul>
+                    <div class="save-load-section">
+                        <button id="clearHistory" class="secondary-button">
+                            <i class="fas fa-broom"></i> 清除历史
+                        </button>
+                    </div>
+                </div>
+                <div class="file-extraction-tips">
+                    <h2><i class="fas fa-info-circle"></i> tcpdump核心技巧</h2>
+                    <div class="tips-content">
+                        <h3><i class="fas fa-lightbulb"></i> tcpdump使用要点</h3>
+                        <ul>
+                            <li><strong>权限</strong>: tcpdump通常需要sudo权限运行 [[9]].</li>
+                            <li><strong>过滤表达式</strong>: 使用pcap-filter语法进行精确过滤 [[11]].</li>
+                            <li><strong>性能</strong>: 在生产环境注意使用-c、-s等限制，避免影响系统 [[89]].</li>
+                            <li><strong>分析</strong>: 结合-w和Wireshark进行深度协议分析 [[54]].</li>
+                        </ul>
+                        <div class="tip-code">
+# 基本用法示例 [[3]]
+sudo tcpdump -i eth0 -n -c 50
+                        </div>
+                        <div class="nmap-tip">
+                            <h4><i class="fas fa-exclamation-triangle"></i> 注意事项</h4>
+                            <ul>
+                                <li>默认只抓取前68字节或96字节，使用-s 0抓取完整包 [[90]].</li>
+                                <li>-w写入的是原始数据包，重定向>写入的是屏幕输出 [[80]].</li>
+                                <li>复杂过滤表达式建议用引号包围。</li>
+                                <li>长时间抓包建议使用-G和-w配合轮询写入。</li>
+                            </ul>
+                        </div>
+                        <div class="nmap-tip fscan-tip">
+                            <h4><i class="fas fa-terminal"></i> 进阶联动</h4>
+                            <ul>
+                                <li>与grep结合实时筛选: <code>tcpdump -l | grep 'pattern'</code> [[9]].</li>
+                                <li>后台运行并写入文件: <code>nohup tcpdump -w capture.pcap &</code></li>
+                                <li>使用脚本自动化分析抓包结果。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer>
+            <p>💡 提示：选择"实战技巧"选项卡查看24项tcpdump实战技巧，涵盖从基础到安全分析</p>
+            <p>增强版tcpdump命令生成器，旨在帮助Linux新手和网络工程师快速上手</p>
+            <div class="footer-links">
+                <a href="#"><i class="fas fa-book"></i> tcpdump手册</a>
+                <a href="#"><i class="fas fa-download"></i> 安装tcpdump</a>
+                <a href="#"><i class="fas fa-question-circle"></i> 使用帮助</a>
+            </div>
+        </footer>
+    </div>
+    <script>
+        // 主标签页切换功能
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(button.dataset.tab).classList.add('active');
+                 // 滚动到顶部，提升用户体验
+                window.scrollTo(0, 0);
+            });
+        });
+        // “实战技巧”子标签页切换功能
+        document.querySelectorAll('.tips-sub-tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.tips-sub-tab-button').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tips-sub-content').forEach(content => content.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(button.dataset.subtab).classList.add('active');
+            });
+        });
+        // 常用接口选择器
+        document.getElementById('commonInterfaces').addEventListener('change', function () {
+            if (this.value) {
+                document.getElementById('interface').value = this.value;
+            }
+        });
+        // 常用端口选择器
+        document.getElementById('commonPorts').addEventListener('change', function () {
+            if (this.value) {
+                document.getElementById('portNumber').value = this.value;
+            }
+        });
+
+        // 应用预设过滤器
+        function applyFilter(filter) {
+            document.getElementById('filterCommand').value = filter;
+        }
+        // 应用场景过滤器
+        function applyScenario(scenario) {
+            let filter = '';
+            switch (scenario) {
+                case 'tcp-handshake':
+                    filter = "tcpdump 'tcp[tcpflags] & (tcp-syn|tcp-ack) != 0'";
+                    break;
+                case 'dns-traffic':
+                    filter = 'tcpdump udp port 53 -vvv';
+                    break;
+                case 'vlan-tagged':
+                    filter = 'tcpdump -i eth0 vlan 20';
+                    break;
+                case 'broadcast-storm':
+                    filter = 'tcpdump broadcast or multicast';
+                    break;
+                case 'icmp-ping':
+                    filter = 'tcpdump icmp';
+                    break;
+                case 'arp-traffic':
+                    filter = 'tcpdump arp';
+                    break;
+                default:
+                    filter = '# 未找到场景';
+            }
+            document.getElementById('filterCommand').value = filter;
+        }
+        // 复制按钮功能
+        document.getElementById('copyButton').addEventListener('click', () => {
+            const textarea = document.getElementById('filterCommand');
+            textarea.select();
+            textarea.setSelectionRange(0, 99999); // 兼容移动端
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                const button = document.getElementById('copyButton');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> 已复制!';
+                button.style.background = 'linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%)';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+                }, 2000);
+            }).catch(err => {
+                 // 降级方案：使用execCommand (虽然已废弃，但兼容性好)
+                 console.warn('Clipboard API failed, trying fallback', err);
+                 textarea.select();
+                 document.execCommand('copy');
+                 const button = document.getElementById('copyButton');
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> 已复制!';
+                button.style.background = 'linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%)';
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.background = 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)';
+                }, 2000);
+            });
+        });
+        // 清除按钮功能
+        document.getElementById('clearButton').addEventListener('click', () => {
+            // 清除所有输入框
+            document.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(input => {
+                // 特殊处理单选按钮和复选框
+                if (input.type !== 'radio' && input.type !== 'checkbox') {
+                     input.value = '';
+                }
+            });
+            // 重置单选按钮到默认值 (如果有)
+             document.querySelectorAll('input[type="radio"][value="both"]').forEach(radio => radio.checked = true);
+             document.querySelectorAll('input[type="radio"][name="portProto"][value=""]').forEach(radio => radio.checked = true);
+             document.querySelectorAll('input[type="radio"][name="verbosity"][value=""]').forEach(radio => radio.checked = true);
+
+            // 清除所有复选框
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            // 重置选择框
+            document.querySelectorAll('select').forEach(select => {
+                select.selectedIndex = 0;
+            });
+            // 清除结果
+            document.getElementById('filterCommand').value = '';
+            // 显示清除动画
+            const button = document.getElementById('clearButton');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check"></i> 已清除!';
+            button.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ffa8a8 100%)';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+            }, 1500);
+        });
+        // 清除历史记录
+        document.getElementById('clearHistory').addEventListener('click', () => {
+            const historyList = document.getElementById('historyList');
+            historyList.innerHTML = '<li class="history-item">暂无历史记录</li>';
+            const button = document.getElementById('clearHistory');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check"></i> 已清除!';
+            setTimeout(() => {
+                button.innerHTML = originalText;
+            }, 1500);
+        });
+        // 复制技巧命令
+        function copyCommand(icon) {
+            const command = icon.parentElement.textContent.trim();
+            navigator.clipboard.writeText(command).then(() => {
+                const originalIcon = icon.className;
+                icon.className = 'fas fa-check';
+                setTimeout(() => {
+                    icon.className = originalIcon;
+                }, 2000);
+            }).catch(err => {
+                 console.warn('Clipboard API failed for tip, trying fallback', err);
+                 const textArea = document.createElement("textarea");
+                textArea.value = command;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                const originalIcon = icon.className;
+                icon.className = 'fas fa-check';
+                setTimeout(() => {
+                    icon.className = originalIcon;
+                }, 2000);
+            });
+        }
+        // 为输入框添加提示 (可选，根据需要添加)
+        const tooltips = {
+            'interface': '指定要监听的网络接口，如eth0、wlan0',
+            'hostIP': '输入要过滤的主机IP地址',
+            'portNumber': '输入要过滤的端口号 (1-65535)',
+            'hostA': '输入通信一方的IP地址',
+            'hostB': '输入通信另一方的IP地址',
+            'vlanID': '输入要过滤的VLAN ID',
+            'outputFile': '指定保存抓包数据的文件名 (通常以.pcap结尾)',
+            'packetCount': '限制抓取的数据包总数 (-c)',
+            'snapshotLength': '限制每个数据包抓取的字节数 (-s, 0表示完整) [[90]]',
+            'customFilter': '在此输入完整的tcpdump命令或过滤表达式'
+        };
+        Object.keys(tooltips).forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.title = tooltips[id];
+            }
+        });
+
+        // 列出接口按钮 (模拟)
+         document.getElementById('listInterfaces').addEventListener('click', () => {
+              alert("此功能将运行 'tcpdump -D' 命令列出所有可用接口。在实际应用中，这需要与后端交互执行命令。");
+              applyFilter('tcpdump -D');
+         });
+
+    </script>
+</body>
+</html>
